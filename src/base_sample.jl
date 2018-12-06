@@ -46,6 +46,7 @@ function  Base.length(mm::MNIG_sampler)
   length(mm.β)
 end
 
+# convert parameters of inverse gaussian
 function invgauss_convert(χ::Real,ψ::Real)
   _shape = χ
   _mean = sqrt(χ/ψ)
@@ -144,4 +145,16 @@ function rand_detailed(mn::MNIG_distr, n_sampl::Integer)
   broadcast!((z,x)-> sqrt(z)*x, x,transpose(z),x)
   @. x = x + zetagb + mn.μ
   (X=x,Y=y,Z=z)
+end
+
+
+# each column of data is an independent sample
+function fit_em_symmetric_mnig(data::AbstractMatrix{T}) where T<:Float64
+  d,n_data= size(data)
+  μ  = mean(data;dims=2) |> vec
+  C = cov(data;dims=2)
+  Γh = C ./ (det(C)^inv(d)) |> Symmetric
+  data_zmu = broadcast(-,data,μ)
+  zwhite = sqrt(Γh)\data_zmu
+  alphasdeltas = mapslices(zs -> _univariate_estimator(zs), zwhite; dims=1)
 end
