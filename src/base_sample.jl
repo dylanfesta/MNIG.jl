@@ -6,29 +6,29 @@ Define the basic types, the sampling
 struct MNIG_distr{T} <: ContinuousMultivariateDistribution
   Γ::AbstractMatrix{T}
   μ::AbstractVector{T}
-  δ::T
-  β::AbstractVector{T}
   α::T
-  function MNIG_distr(Γ,μ,δ,β,α)
+  β::AbstractVector{T}
+  δ::T
+  function MNIG_distr(Γ,μ,α,β,δ)
     alphsq = α*α
-    bgb = transpose(β)*Γ*β
+    bgb = dot(β,Γ*β)
     @assert isapprox(det(Γ),1.0;atol=1E-5 ) "determinant of Γ must be 1 !"
     @assert alphsq > bgb "wrong parameters! Please check β and α  !"
-    new{eltype(μ)}(Γ,μ,δ,β,α)
+    new{eltype(μ)}(Γ,μ,α,β,δ)
   end
 end
 
 struct MNIG_sampler{T} <: Sampleable{Multivariate,Continuous}
   Γ::AbstractMatrix{T}
   μ::AbstractVector{T}
-  δ::T
-  β::AbstractVector{T}
   α::T
-  function MNIG_sampler(Γ,μ,δ,β,α)
+  β::AbstractVector{T}
+  δ::T
+  function MNIG_sampler(Γ,μ,α,β,δ)
     alphsq = α*α
     bgb = transpose(β)*Γ*β
     @assert alphsq > bgb "wrong parameters! Please β and α  !"
-    new{eltype(μ)}(Γ,μ,δ,β,α)
+    new{eltype(μ)}(Γ,μ,α,β,δ)
   end
 end
 
@@ -149,12 +149,24 @@ end
 
 
 # each column of data is an independent sample
-function fit_em_symmetric_mnig(data::AbstractMatrix{T}) where T<:Float64
-  d,n_data= size(data)
+function fit_ml_symmetric_mnig(data::AbstractMatrix{T}) where T<:Float64
+  n,n_data= size(data)
   μ  = mean(data;dims=2) |> vec
   C = cov(data;dims=2)
-  Γh = C ./ (det(C)^inv(d)) |> Symmetric
-  data_zmu = broadcast(-,data,μ)
-  zwhite = sqrt(Γh)\data_zmu
-  alphasdeltas = mapslices(zs -> _univariate_estimator(zs), zwhite; dims=1)
+  Γhat = C ./ (det(C)^inv(n)) |> Symmetric
+  data_mmu = broadcast(-,data,μ)
+  zwhite = sqrt(Γhat)\data_mmu
+  alphas = Vector{T}(undef,n_data)
+  deltas = similar(alphas)
+  for i in eachindex(alphas)
+    zs = view(zwhite,:,i)
+    _d = fit_mle_less(NormalInverseGaussian,zs)
+    _,_α,_,_δ = params(_d)
+    alphas[i]=_α
+    deltas[i]=_δ
+  end
+  αhat = mean(alphas)
+  δhat = mean(deltas)
+  βhat = fill(0.0,n)
+  MNIG_distr( Γhat, μ , αhat , βhat , δhat )
 end

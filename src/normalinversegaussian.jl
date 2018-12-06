@@ -135,7 +135,6 @@ function fit_mle_less(::Type{NormalInverseGaussian},
     μhat = 0.0
     αhat = sqrt( γhat^2  )
     p_init = (αhat,δhat,γhat)
-
     loglik(p) = loglikelihood( NormalInverseGaussian(0.0,p[1],0.0,p[2]), x )
 
     max_iter = 500
@@ -147,7 +146,12 @@ function fit_mle_less(::Type{NormalInverseGaussian},
     ll_old = loglik(p_old)
     while cost > atol && iter < max_iter
       p_new = _NIG_EM_step_less(x,p_old...)
-      ll_new = loglik(p_new)
+      ll_new = try
+        loglik(p_new)
+      catch
+        @show p_old p_new
+        error("Nooo!")
+      end
       cost = abs((ll_new-ll_old)/ll_old )
       iter +=1
       ll_old=ll_new
