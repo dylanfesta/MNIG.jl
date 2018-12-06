@@ -27,7 +27,7 @@ end
 
 include("base_sample.jl")
 include("stan_inference.jl")
-
+include("normalinversegaussian.jl")
 
 
 end # module
