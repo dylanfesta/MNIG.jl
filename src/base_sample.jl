@@ -156,17 +156,9 @@ function fit_ml_symmetric_mnig(data::AbstractMatrix{T}) where T<:Float64
   Γhat = C ./ (det(C)^inv(n)) |> Symmetric
   data_mmu = broadcast(-,data,μ)
   zwhite = sqrt(Γhat)\data_mmu
-  alphas = Vector{T}(undef,n_data)
-  deltas = similar(alphas)
-  for i in eachindex(alphas)
-    zs = view(zwhite,:,i)
-    _d = fit_mle_less(NormalInverseGaussian,zs)
-    _,_α,_,_δ = params(_d)
-    alphas[i]=_α
-    deltas[i]=_δ
-  end
-  αhat = mean(alphas)
-  δhat = mean(deltas)
+  # let's just fit all zs together!
+   _d = fit_mle_less(NormalInverseGaussian,zwhite[:])
+   _,αhat,_,δhat = params(_d)
   βhat = fill(0.0,n)
   MNIG_distr( Γhat, μ , αhat , βhat , δhat )
 end

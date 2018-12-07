@@ -21,7 +21,7 @@ alph = 1.0
 distr = M.MNIG_distr(mygamma,mu,alph,mybeta,delta)
 
 ##
-data_test = rand(distr,500)
+data_test = rand(distr,10_000)
 
 distr_fit = M.fit_ml_symmetric_mnig(data_test)
 
@@ -30,8 +30,11 @@ distr_fit = M.fit_ml_symmetric_mnig(data_test)
 using Plots ; plot()
 test1 = rand(distr,10_000)
 test2 = rand(distr_fit,10_000)
-histogram(test1[:]; nbins=100,normed=true,opacity=0.3)
+
+histogram(data_test[:]; nbins=100,normed=true,opacity=0.3)
+histogram!(test1[:]; nbins=100,normed=true,opacity=0.3)
 histogram!(test2[:]; nbins=100,normed=true,opacity=0.3)
+
 
 
 scatter(mygamma[:],distr_fit.Γ[:],ratio=1)
